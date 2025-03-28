@@ -1,4 +1,3 @@
-import pickle
 import random
 from natasha import Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger, Doc
 
@@ -7,10 +6,6 @@ segmenter = Segmenter()
 morph_vocab = MorphVocab()
 emb = NewsEmbedding()
 morph_tagger = NewsMorphTagger(emb)
-
-# Загружаем данные из word_data.pkl
-with open(r'data\word_data.pkl', 'rb') as f:
-    word_data = pickle.load(f)
 
 # Функция для определения части речи с помощью Natasha
 def get_pos_natasha(word):
@@ -34,13 +29,6 @@ def get_pos(word):
     while "?" in clean_word:
         clean_word = clean_word.replace("?", "")
     
-    # Проверяем в словаре
-    grammemes = word_data.get(clean_word, [])
-    for grammeme in grammemes:
-        if grammeme in ["NOUN", "VERB", "ADJ", "ADV", "PREP", "CONJ", "PRON", "NUM", "INTJ"]:
-            return grammeme
-    
-    # Если слово не в словаре, используем Natasha
     return get_pos_natasha(clean_word)
 
 # Функция для определения, является ли последняя буква согласной
