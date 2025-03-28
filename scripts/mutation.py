@@ -52,7 +52,7 @@ def alternate_consonant(word):
             return word[:-len(old)] + new
     return word
 
-# Функция для определения рода существительного с помощью Natasha
+# Функция для определения рода существительного 
 def get_gender(word):
     doc = Doc(word)
     doc.segment(segmenter)
