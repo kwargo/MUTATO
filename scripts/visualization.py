@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from networkx.drawing.nx_agraph import graphviz_layout
 import os
 import matplotlib.colors as mcolors
 
@@ -16,8 +17,7 @@ def plot_mutation_tree_static(graph):
     ax = fig.add_subplot(111)
     ax.set_facecolor('#e6f3ff')
     
-    # Используем pydot для иерархичной раскладки (требуется установка pydot)
-    pos = nx.nx_pydot.graphviz_layout(graph, prog='dot')
+    pos = graphviz_layout(graph, prog='dot', args='-Granksep=3 -Gnodesep=2')
     
     depths = nx.shortest_path_length(graph, list(graph.nodes)[0]) if graph.nodes else {}
     max_depth = max(depths.values()) if depths else 1
@@ -35,7 +35,7 @@ def plot_mutation_tree_static(graph):
         edge_colors.append(plt.cm.coolwarm(avg_depth))
     
     nx.draw_networkx_edges(graph, pos, edge_color=edge_colors, arrows=True, 
-                           arrowstyle='->', arrowsize=25, width=2, alpha=0.7)
+                          arrowstyle='->', arrowsize=25, width=2, alpha=0.7)
     nx.draw_networkx_nodes(graph, pos, node_color=node_colors, node_size=node_sizes, 
                            edgecolors='black', linewidths=1.5, alpha=0.9)
     
@@ -58,7 +58,7 @@ def plot_mutation_tree_static(graph):
     static_path = os.path.join(output_dir, 'mutation_tree_static.png')
     plt.savefig(static_path, dpi=300, bbox_inches='tight')
     print(f"Статичный график сохранён по пути: {static_path}")
-    plt.close()
+    plt.show()
 
 def plot_mutation_tree_interactive(graph):
     if not graph.nodes:
@@ -68,8 +68,7 @@ def plot_mutation_tree_interactive(graph):
     output_dir = os.path.join(os.getcwd(), 'results', 'plots')
     os.makedirs(output_dir, exist_ok=True)
     
-    # Используем pydot для иерархичной раскладки (требуется установка pydot)
-    pos = nx.nx_pydot.graphviz_layout(graph, prog='dot')
+    pos = graphviz_layout(graph, prog='dot', args='-Granksep=3 -Gnodesep=2')
     
     edge_x = []
     edge_y = []
@@ -82,6 +81,7 @@ def plot_mutation_tree_interactive(graph):
 
     # Список для аннотаций рёбер
     annotations = []
+
     for u, v in graph.edges():
         x0, y0 = pos[u]
         x1, y1 = pos[v]
@@ -93,6 +93,7 @@ def plot_mutation_tree_interactive(graph):
         edge_color_values.extend([avg_depth, avg_depth, None])
         edge_text.extend([graph[u][v]['mutation'], graph[u][v]['mutation'], None])
         
+        # Добавляем аннотацию для ребра
         mid_x = (x0 + x1) / 2
         mid_y = (y0 + y1) / 2
         annotations.append(
@@ -126,10 +127,8 @@ def plot_mutation_tree_interactive(graph):
     
     # Подписи узлов: добавляем часть речи
     node_labels = [f"{node} ({graph.nodes[node]['pos']})" for node in graph.nodes()]
-    node_text = [
-        f"Слово: {node}<br>Часть речи: {graph.nodes[node]['pos']}<br>Глубина: {depths.get(node, 0)}<br>Степень: {graph.degree(node)}"
-        for node in graph.nodes()
-    ]
+    node_text = [f"Слово: {node}<br>Часть речи: {graph.nodes[node]['pos']}<br>Глубина: {depths.get(node, 0)}<br>Степень: {graph.degree(node)}"
+                 for node in graph.nodes()]
     
     node_trace = go.Scatter(
         x=node_x, y=node_y,
@@ -170,14 +169,15 @@ def plot_mutation_tree_interactive(graph):
             plot_bgcolor='#e6f3ff',
             paper_bgcolor='#f0f0f0',
             annotations=annotations,
-            dragmode='zoom',
-            uirevision='true',
-            hoverdistance=100,
-            spikedistance=100,
-            xaxis_range=None,
-            yaxis_range=None,
+            # Настройки для масштабирования
+            dragmode='zoom',  # Режим по умолчанию — масштабирование
+            uirevision='true',  # Сохраняем состояние графа при обновлении
+            hoverdistance=100,  # Увеличиваем дистанцию для ховера
+            spikedistance=100,  # Увеличиваем дистанцию для спайков
+            xaxis_range=None,  # Автоматический диапазон по оси X
+            yaxis_range=None,  # Автоматический диапазон по оси Y
             scene=dict(
-                aspectmode="data",
+                aspectmode="data",  # Масштабирование с сохранением пропорций
                 camera=dict(
                     up=dict(x=0, y=0, z=1),
                     center=dict(x=0, y=0, z=0),
@@ -187,12 +187,13 @@ def plot_mutation_tree_interactive(graph):
         )
     )
 
+    # Устанавливаем конфигурацию для масштабирования
     config = {
-        'scrollZoom': True,
-        'displayModeBar': True,
-        'modeBarButtonsToAdd': ['zoomIn2d', 'zoomOut2d', 'autoScale2d'],
+        'scrollZoom': True,  # Включаем масштабирование с помощью колесика мыши
+        'displayModeBar': True,  # Показываем панель инструментов
+        'modeBarButtonsToAdd': ['zoomIn2d', 'zoomOut2d', 'autoScale2d'],  # Добавляем кнопки масштабирования
         'toImageButtonOptions': {
-            'format': 'png',
+            'format': 'png',  # Формат изображения для скачивания
             'filename': 'mutation_tree_interactive',
             'height': 600,
             'width': 800,
@@ -200,6 +201,7 @@ def plot_mutation_tree_interactive(graph):
         }
     }
 
+    # Обновляем layout без scrollZoom
     fig.update_layout(
         dragmode='zoom',
         hovermode='closest',
