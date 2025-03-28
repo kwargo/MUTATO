@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты мутаций</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Результаты мутаций</h1>
+        <p>Интерактивный граф мутаций:</p>
+        <iframe src="{{ url_for('show_graph') }}" width="100%" height="600px"></iframe>
+        <p>Скачать результаты:</p>
+        <ul>
+            <li><a href="{{ url_for('download_file', filename='mutation_history.txt') }}">История мутаций (txt)</a></li>
+            <li><a href="{{ url_for('download_file', filename='mutation_graph.graphml') }}">Граф (GraphML)</a></li>
+            <li><a href="{{ url_for('download_file', filename='plots/mutation_tree_static.png') }}">Статический граф (PNG)</a></li>
+        </ul>
+        <a href="{{ url_for('index') }}">Вернуться к вводу слов</a>
+    </div>
+</body>
+</html>

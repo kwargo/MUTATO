@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор мутаций слов</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Генератор мутаций слов</h1>
+        <p>Введите слова (через пробел), чтобы увидеть, как они мутируют:</p>
+        <form method="POST">
+            <textarea name="words" rows="5" placeholder="Например: кот дом бежать"></textarea>
+            <button type="submit">Сгенерировать граф</button>
+        </form>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>
