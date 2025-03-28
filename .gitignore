@@ -4,4 +4,3 @@ __pycache__/
 results/
 *.log
 nohup.out
-data/word_data.pkl
