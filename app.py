@@ -1,83 +1,111 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, Response
 import os
 import platform
 import networkx as nx
 import random
+from typing import Optional
 from scripts.mutation import mutate_word
-from scripts.visualization import plot_mutation_tree_static, plot_mutation_tree_interactive, save_graph
+from scripts.visualization import (
+    plot_mutation_tree_static,
+    plot_mutation_tree_interactive,
+    save_graph
+)
 
 app = Flask(__name__)
 
 # Создаём директории для результатов
-os.makedirs('results', exist_ok=True)
 os.makedirs('results/plots', exist_ok=True)
 
-# Главная страница
 @app.route('/', methods=['GET', 'POST'])
-def index():
+def index() -> str:
+    """
+    Обрабатывает главную страницу: получение слов от пользователя,
+    генерацию и визуализацию мутаций, сохранение результатов.
+
+    GET: Возвращает шаблон index.html.
+    POST: Принимает слова, генерирует граф мутаций,
+    сохраняет историю, статичный и интерактивный графы,
+    сохраняет GraphML и возвращает шаблон result.html.
+
+    :return: Рендеринг HTML-страницы.
+    """
     if request.method == 'POST':
-        # Получаем слова от пользователя
-        words_input = request.form.get('words', '').strip()
+        words_input: str = request.form.get('words', '').strip()
         if not words_input:
             return render_template('index.html', error="Пожалуйста, введите хотя бы одно слово.")
 
         initial_corpus = words_input.split()
-
-        # Создаём граф
         G = nx.DiGraph()
 
-        # Добавляем начальные слова в граф с их частями речи
+        # Добавляем начальные узлы
         for word in initial_corpus:
-            _, pos, _ = mutate_word(word)  # Получаем часть речи
+            _, pos, _ = mutate_word(word)
             G.add_node(word, pos=pos)
 
         # Параметры симуляции
-        num_generations = 10
-        mutation_rate = 0.3
-        max_nodes = 50
+        num_generations: int = 10
+        mutation_rate: float = 0.3
+        max_nodes: int = 50
 
-        # Генерация мутаций
-        with open('results/mutation_history.txt', 'w', encoding='utf-8') as history_file:
-            for generation in range(num_generations):
-                if len(G.nodes) >= max_nodes:
+        # Генерация мутаций и запись истории
+        history_path = os.path.join('results', 'mutation_history.txt')
+        os.makedirs('results', exist_ok=True)
+        with open(history_path, 'w', encoding='utf-8') as history_file:
+            for _ in range(num_generations):
+                if len(G.nodes) >= max_nodes or not G.nodes:
                     break
-                if not G.nodes:
-                    break
-                num_to_mutate = max(1, int(len(G.nodes) * mutation_rate))
-                words_to_mutate = random.sample(list(G.nodes), min(num_to_mutate, len(G.nodes)))
-                for word in words_to_mutate:
-                    new_word, pos, mutation_info = mutate_word(word)
+                count = max(1, int(len(G.nodes) * mutation_rate))
+                to_mutate = random.sample(list(G.nodes), min(count, len(G.nodes)))
+                for w in to_mutate:
+                    new_word, pos, info = mutate_word(w)
                     G.add_node(new_word, pos=pos)
-                    G.add_edge(word, new_word, mutation=mutation_info)
-                    history_file.write(f"{word} ({G.nodes[word]['pos']}) -> {new_word} ({pos}): {mutation_info}\n")
+                    G.add_edge(w, new_word, mutation=info)
+                    history_file.write(f"{w} ({G.nodes[w]['pos']}) -> {new_word} ({pos}): {info}\n")
 
-        # Визуализация графа
+        # Визуализация и сохранение графа
         plot_mutation_tree_static(G)
         plot_mutation_tree_interactive(G)
         save_graph(G)
 
         return render_template('result.html')
 
+    # GET-запрос
     return render_template('index.html')
 
-# Маршрут для скачивания файлов
 @app.route('/download/<filename>')
-def download_file(filename):
+def download_file(filename: str) -> Response or tuple[str, int]:
+    """
+    Предоставляет файл для скачивания из папки results.
+
+    :param filename: Имя файла в папке results.
+    :return: Отправка файла или ошибка 404.
+    """
     file_path = os.path.join('results', filename)
     if os.path.exists(file_path):
         return send_file(file_path, as_attachment=True)
     return "Файл не найден.", 404
 
-# Маршрут для отображения интерактивного графа
 @app.route('/graph')
-def show_graph():
-    with open('results/plots/mutation_tree_interactive.html', 'r', encoding='utf-8') as f:
-        graph_html = f.read()
-    return graph_html
+def show_graph() -> str:
+    """
+    Возвращает HTML контент интерактивного графа мутаций.
+
+    :return: Строка с HTML-файлом графа.
+    """
+    html_path = os.path.join('results', 'plots', 'mutation_tree_interactive.html')
+    try:
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return "Граф не найден.", 404
 
 if __name__ == '__main__':
-    if platform.system() == "Windows":
+    """
+    Запускает Flask-приложение через waitress на Windows или встроенный сервер для других ОС.
+    """
+    port = int(os.environ.get('PORT', 5000))
+    if platform.system() == 'Windows':
         from waitress import serve
-        serve(app, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+        serve(app, host='0.0.0.0', port=port)
     else:
-        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
+        app.run(host='0.0.0.0', port=port, debug=False)
