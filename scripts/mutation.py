@@ -22,6 +22,7 @@ def get_pos_natasha(word: str) -> Optional[str]:
     doc.tag_morph(morph_tagger)
     return doc.tokens[0].pos if doc.tokens else None
 
+
 def get_pos(word: str) -> str:
     """
     Обёртка над get_pos_natasha: очищает слово и возвращает часть речи.
